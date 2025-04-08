@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Alumnos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body>
+   
+    <header class="bg-primary text-white text-center py-3">
+        <h1>Gestión de Alumnos</h1>
+    </header>
+
+   
+    <div class="container">
+        <div class="row">
+            
+            <div class="col-6 mt-4">
+                <h2>Agregar/Editar Alumnos</h2>
+                <form method="post" id="alumnoForm">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <input type="hidden" id="alumnoId" name="alumnoId" value="">
+                    <button class="btn btn-success" type="submit">Guardar</button>
+                </form>
+                <p id="mensaje"></p>
+            </div>
+
+           
+            <div class="col-6 mt-4">
+                <h2>Lista de Alumnos</h2>
+                <div class="row" id="alumnos"></div>
+            </div>
+        </div>
+    </div>
+
+    
+    <footer class="bg-dark text-white text-center py-3 mt-4">
+    </footer>
+
+    <script>
+      
+        const form = document.getElementById("alumnoForm");
+
+     
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+         
+            const formData = new FormData(form);
+            const jsonData = {};
+            formData.forEach((value, key) => {
+                jsonData[key] = value;
+            });
+
+           
+            const alumnoId = document.getElementById("alumnoId").value;
+            const method = alumnoId ? "PUT" : "POST"; 
+            const url = alumnoId ? `/alumnos/api/${alumnoId}/` : "/alumnos/api/";
+
+           
+            fetch(url, {
+                method: method,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(jsonData),
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    document.getElementById("mensaje").innerText = alumnoId
+                        ? "Alumno actualizado correctamente"
+                        : "Alumno creado correctamente";
+                    cargarAlumnos(); 
+                    form.reset(); 
+                    document.getElementById("alumnoId").value = ""; 
+                })
+                .catch((error) => {
+                    console.error("Error:", error);
+                    document.getElementById("mensaje").innerText = "Hubo un error al procesar la solicitud";
+                });
+        });
+
+        function cargarAlumnos() {
+            fetch("/alumnos/api/")
+                .then((response) => response.json())
+                .then((data) => {
+                    const alumnosDiv = document.getElementById("alumnos");
+                    alumnosDiv.innerHTML = "";
+
+                    data.forEach((alumno) => {
+                        alumnosDiv.innerHTML += `
+                            <div class="col-12 border p-2 m-1">
+                                <strong>${alumno.nombre} ${alumno.apellidos}</strong><br>
+                                Edad: ${alumno.edad}<br>
+                                Matrícula: ${alumno.matricula}<br>
+                                Correo: ${alumno.correo}<br>
+                                <button class="btn btn-warning btn-sm mt-2" onclick="editarAlumno(${alumno.id})">
+                                    <i class="fas fa-edit"></i> <!-- Icono de editar -->
+                                </button>
+                                <button class="btn btn-danger btn-sm mt-2" onclick="eliminarAlumno(${alumno.id})">
+                                    <i class="fas fa-trash"></i> <!-- Icono de eliminar -->
+                                </button>
+                            </div>
+                        `;
+                    });
+                })
+                .catch((error) => console.error("Error:", error));
+        }
+
+        
+        function editarAlumno(id) {
+            fetch(`/alumnos/api/${id}/`)
+                .then((response) => response.json())
+                .then((data) => {
+                 
+                    document.getElementById("alumnoId").value = data.id;
+                    document.getElementById("id_nombre").value = data.nombre;
+                    document.getElementById("id_apellidos").value = data.apellidos;
+                    document.getElementById("id_edad").value = data.edad;
+                    document.getElementById("id_matricula").value = data.matricula;
+                    document.getElementById("id_correo").value = data.correo;
+                })
+                .catch((error) => console.error("Error:", error));
+        }
+
+        async function eliminarAlumno(id) {
+            await fetch(`/alumnos/api/${id}/`, {
+                method: "DELETE",
+            });
+            cargarAlumnos(); 
+        }
+
+        cargarAlumnos();
+    </script>
+</body>
+
+</html>
